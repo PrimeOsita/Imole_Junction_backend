@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const pinoHttp = require('pino-http');
 const { env, assertRequiredEnv } = require('./config/env');
 const redisClient = require('./Mongoose connection/redis');
+const swaggerUi = require('swagger-ui-express');
+const { swaggerSpec } = require('./docs/swagger');
 
 const { connectDatabase } = require('./config/database');
 require('./Mongoose connection/redis'); 
@@ -14,7 +16,7 @@ const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 assertRequiredEnv();
 
 const app = express();
-
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: 'IMOLE API Docs' }));
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
