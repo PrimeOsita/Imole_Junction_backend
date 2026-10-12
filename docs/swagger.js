@@ -56,7 +56,16 @@ const swaggerSpec = {
   },
   // Relative URL: works on localhost and on Render without editing.
 //   /api/v1
-  servers: [{ url: 'https://imole-junction-backend.onrender.com',}],
+ servers: [
+    {
+      url: 'http://localhost:8000/api/v1',
+      description: 'Local development server',
+    },
+    {
+      url: 'https://imole-junction-backend.onrender.com/api/v1',
+      description: 'Render production server',
+    },
+  ],
   tags: [
     { name: 'Skills', description: 'The 5 life skills. Public, no token needed.' },
     { name: 'Child', description: 'Everything a child does in the app. Uses the child token.' },
