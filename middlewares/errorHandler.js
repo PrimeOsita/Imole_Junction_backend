@@ -6,7 +6,10 @@ class ApiError extends Error {
 }
 
 function notFoundHandler(req, res) {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.originalUrl}. See /api-docs for the list of available endpoints.`,
+  });
 }
 
 

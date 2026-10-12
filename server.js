@@ -17,6 +17,8 @@ assertRequiredEnv();
 
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: 'IMOLE API Docs' }));
+app.get('/', (req, res) => res.redirect('/api-docs'));
+app.get('/api/v1', (req, res) => res.redirect('/api-docs'));
 app.use(helmet());
 app.use(cors());
 app.use(express.json());

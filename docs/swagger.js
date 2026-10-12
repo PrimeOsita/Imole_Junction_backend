@@ -55,6 +55,7 @@ const swaggerSpec = {
     ].join('\n'),
   },
   // Relative URL: works on localhost and on Render without editing.
+//   /api/v1
   servers: [{ url: 'https://imole-junction-backend.onrender.com',}],
   tags: [
     { name: 'Skills', description: 'The 5 life skills. Public, no token needed.' },
