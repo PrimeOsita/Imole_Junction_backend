@@ -2,6 +2,7 @@ const express = require('express');
 const adminController = require('../controllers/Admin/adminController');
 const { adminAuth } = require('../middlewares/adminAuth');
 const { validate } = require('../middlewares/validate');
+const { authRateLimiter } = require('../middlewares/rateLimiter');
 const {
   adminLoginSchema,
   createChallengeSchema,
@@ -12,8 +13,13 @@ const {
 
 const router = express.Router();
 
-router.post('/admin/login', validate(adminLoginSchema), adminController.login);
-
+// router.post('/admin/login', validate(adminLoginSchema), adminController.login);
+router.post(
+  '/admin/login',
+  authRateLimiter,
+  validate(adminLoginSchema),
+  adminController.login
+);
 router.get('/admin/challenges', adminAuth(), adminController.listChallenges);
 router.post('/admin/challenges', adminAuth(), validate(createChallengeSchema), adminController.createChallenge);
 router.get('/admin/challenges/:id', adminAuth(), adminController.getChallenge);

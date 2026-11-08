@@ -12,10 +12,27 @@ function isYesterday(date, today) {
 
 async function registerActivityForStreak(childId) {
   const today = new Date();
-  let streak = await Streak.findOne({ childId });
+  // let streak = await Streak.findOne({ childId });
+  let query = Streak.findOne({ childId });
+
+if (session) {
+  query = query.session(session);
+}
+
+let streak = await query;
 
   if (!streak) {
-    streak = await Streak.create({ childId, currentStreak: 1, bestStreak: 1, lastActiveDate: today });
+ const created = await Streak.create(
+  [{
+    childId,
+    currentStreak: 1,
+    bestStreak: 1,
+    lastActiveDate: today,
+  }],
+  session ? { session } : {}
+);
+streak = created[0];
+
     return streak;
   }
 
@@ -28,7 +45,7 @@ async function registerActivityForStreak(childId) {
   streak.bestStreak = Math.max(streak.bestStreak, streak.currentStreak);
   streak.lastActiveDate = today;
 
-  await streak.save();
+  await streak.save(session ? { session } : {});
   return streak;
 }
 

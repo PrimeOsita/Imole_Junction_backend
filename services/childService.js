@@ -110,7 +110,148 @@ async function getTodayChallenge(childId) {
   };
 }
 
+
+// async function submitTodayChallenge(childId, { responseText, selectedOption }) {
+//   const mongoose = require('mongoose');
+
+//   const child = await getChildById(childId);
+//   const assignment = await getTodayAssignment(childId);
+
+//   if (assignment.locked) {
+//     throw new ApiError(409, "Today's challenge has already been submitted");
+//   }
+
+//   const challenge = await Challenge.findById(assignment.challengeId._id);
+
+//   if (!challenge) {
+//     throw new ApiError(404, 'Challenge not found');
+//   }
+
+//   const translation = pickTranslation(
+//     challenge,
+//     child.preferredLanguage
+//   );
+
+//   if (challenge.type === 'multiple_choice' && !selectedOption) {
+//     throw new ApiError(400, 'selectedOption is required');
+//   }
+
+//   if (challenge.type === 'text' && !responseText) {
+//     throw new ApiError(400, 'responseText is required');
+//   }
+
+//   const isCorrect =
+//     challenge.type === 'multiple_choice'
+//       ? normalize(translation.correctAnswer) === normalize(selectedOption)
+//       : null;
+
+//   const pointsEarned = isCorrect ? 10 : 5;
+
+//   const session = await mongoose.startSession();
+
+//   let submission;
+//   let progress;
+//   let streak;
+
+//   try {
+//     await session.withTransaction(async () => {
+//       // Atomically lock the assignment.
+//       // Only one request can successfully update an unlocked assignment.
+//       const lockedAssignment = await DailyAssignment.findOneAndUpdate(
+//         {
+//           _id: assignment._id,
+//           challengeId: challenge._id,
+//           locked: false,
+//         },
+//         {
+//           $set: {
+//             locked: true,
+//             completedAt: new Date(),
+//           },
+//         },
+//         {
+//           new: true,
+//           session,
+//         }
+//       );
+
+//       if (!lockedAssignment) {
+//         throw new ApiError(
+//           409,
+//           "Today's challenge has already been submitted"
+//         );
+//       }
+
+//       const submissions = await Submission.create(
+//         [
+//           {
+//             dailyAssignmentId: assignment._id,
+//             childId,
+//             responseText,
+//             selectedOption,
+//             isCorrect,
+//           },
+//         ],
+//         { session }
+//       );
+
+//       submission = submissions[0];
+
+//       progress = await SkillProgress.findOneAndUpdate(
+//         {
+//           childId,
+//           skillId: challenge.skillId,
+//         },
+//         {
+//           $inc: {
+//             challengesCompleted: 1,
+//             score: pointsEarned,
+//           },
+//         },
+//         {
+//           upsert: true,
+//           new: true,
+//           session,
+//         }
+//       );
+
+//       streak = await registerActivityForStreak(childId, session);
+//     });
+//   } finally {
+//     await session.endSession();
+//   }
+
+//   // Queue certificate creation after the transaction succeeds.
+//   if (progress.challengesCompleted === CERTIFICATE_MILESTONE) {
+//     certificateQueue
+//       .add(
+//         'issue',
+//         { childId, skillId: challenge.skillId },
+//         { jobId: `cert-${childId}-${challenge.skillId}` }
+//       )
+//       .catch((err) => {
+//         console.error(
+//           'Could not queue certificate job:',
+//           err.message
+//         );
+//       });
+//   }
+
+//   return {
+//     submission,
+//     isCorrect,
+//     pointsEarned,
+//     correctAnswer:
+//       challenge.type === 'multiple_choice'
+//         ? translation.correctAnswer
+//         : null,
+//     streak,
+//   };
+// }
+
 async function submitTodayChallenge(childId, { responseText, selectedOption }) {
+  const mongoose = require('mongoose');
+
   const child = await getChildById(childId);
   const assignment = await getTodayAssignment(childId);
 
@@ -119,59 +260,134 @@ async function submitTodayChallenge(childId, { responseText, selectedOption }) {
   }
 
   const challenge = await Challenge.findById(assignment.challengeId._id);
-  const translation = pickTranslation(challenge, child.preferredLanguage);
+
+  if (!challenge) {
+    throw new ApiError(404, 'Challenge not found');
+  }
+
+  const translation = pickTranslation(
+    challenge,
+    child.preferredLanguage
+  );
 
   if (challenge.type === 'multiple_choice' && !selectedOption) {
-    throw new ApiError(400, 'selectedOption is required for this challenge');
+    throw new ApiError(400, 'selectedOption is required');
   }
+
   if (challenge.type === 'text' && !responseText) {
-    throw new ApiError(400, 'responseText is required for this challenge');
+    throw new ApiError(400, 'responseText is required');
   }
 
   const isCorrect =
     challenge.type === 'multiple_choice'
       ? normalize(translation.correctAnswer) === normalize(selectedOption)
-      : null; // free-text answers aren't auto-graded
+      : null;
 
   const pointsEarned = isCorrect ? 10 : 5;
 
-  const submission = await Submission.create({
-    dailyAssignmentId: assignment._id,
-    childId,
-    responseText,
-    selectedOption,
-    isCorrect,
-  });
+  const session = await mongoose.startSession();
 
-  assignment.locked = true;
-  assignment.completedAt = new Date();
-  await assignment.save();
+  let submission;
+  let progress;
+  let streak;
 
-  const progress = await SkillProgress.findOneAndUpdate(
-    { childId, skillId: challenge.skillId },
-    { $inc: { challengesCompleted: 1, score: pointsEarned } },
-    { upsert: true, new: true }
-  );
+  try {
+    await session.withTransaction(async () => {
+      // Atomically lock the assignment.
+      // Only one request can successfully update an unlocked assignment.
+      const lockedAssignment = await DailyAssignment.findOneAndUpdate(
+        {
+          _id: assignment._id,
+          challengeId: challenge._id,
+          locked: false,
+        },
+        {
+          $set: {
+            locked: true,
+            completedAt: new Date(),
+          },
+        },
+        {
+          new: true,
+          session,
+        }
+      );
 
-  // Hitting the milestone hands certificate creation to the background worker.
-  // The jobId dedupes it, and a queue hiccup must never fail the submission.
-  if (progress.challengesCompleted === CERTIFICATE_MILESTONE) {
-    certificateQueue
-      .add('issue', { childId, skillId: challenge.skillId }, { jobId: `cert-${childId}-${challenge.skillId}` })
-      .catch((err) => console.error('Could not queue certificate job:', err.message));
+      if (!lockedAssignment) {
+        throw new ApiError(
+          409,
+          "Today's challenge has already been submitted"
+        );
+      }
+
+      const submissions = await Submission.create(
+        [
+          {
+            dailyAssignmentId: assignment._id,
+            childId,
+            responseText,
+            selectedOption,
+            isCorrect,
+          },
+        ],
+        { session }
+      );
+
+      submission = submissions[0];
+
+      progress = await SkillProgress.findOneAndUpdate(
+        {
+          childId,
+          skillId: challenge.skillId,
+        },
+        {
+          $inc: {
+            challengesCompleted: 1,
+            score: pointsEarned,
+          },
+        },
+        {
+          upsert: true,
+          new: true,
+          session,
+        }
+      );
+
+      streak = await registerActivityForStreak(childId, session);
+    });
+  } finally {
+    await session.endSession();
   }
 
-  const streak = await registerActivityForStreak(childId);
+  // Queue certificate creation after the transaction succeeds.
+  if (progress.challengesCompleted === CERTIFICATE_MILESTONE) {
+    certificateQueue
+      .add(
+        'issue',
+        { childId, skillId: challenge.skillId },
+        { jobId: `cert-${childId}-${challenge.skillId}` }
+      )
+      .catch((err) => {
+        console.error(
+          'Could not queue certificate job:',
+          err.message
+        );
+      });
+  }
 
   return {
     submission,
     isCorrect,
     pointsEarned,
-    // safe to reveal now that the challenge is locked for today
-    correctAnswer: challenge.type === 'multiple_choice' ? translation.correctAnswer : null,
+    correctAnswer:
+      challenge.type === 'multiple_choice'
+        ? translation.correctAnswer
+        : null,
     streak,
   };
 }
+
+
 
 async function getStreak(childId) {
   const streak = await Streak.findOne({ childId });
@@ -220,3 +436,155 @@ module.exports = {
   swapTodayChallenge,
   MAX_SWAPS_PER_DAY
 };
+
+
+// async function submitTodayChallenge(childId, { responseText, selectedOption }) {
+//   const mongoose = require('mongoose');
+
+//   const child = await getChildById(childId);
+//   const assignment = await getTodayAssignment(childId);
+
+//   if (assignment.locked) {
+//     throw new ApiError(409, "Today's challenge has already been submitted");
+//   }
+
+//   const challenge = await Challenge.findById(assignment.challengeId._id);
+
+//   if (!challenge) {
+//     throw new ApiError(404, 'Challenge not found');
+//   }
+
+//   const translation = pickTranslation(
+//     challenge,
+//     child.preferredLanguage
+//   );
+
+//   if (challenge.type === 'multiple_choice' && !selectedOption) {
+//     throw new ApiError(400, 'selectedOption is required');
+//   }
+
+//   if (challenge.type === 'text' && !responseText) {
+//     throw new ApiError(400, 'responseText is required');
+//   }
+
+//   const isCorrect =
+//     challenge.type === 'multiple_choice'
+//       ? normalize(translation.correctAnswer) === normalize(selectedOption)
+//       : null;
+
+//   const pointsEarned = isCorrect ? 10 : 5;
+
+//   const session = await mongoose.startSession();
+
+//   let submission;
+//   let progress;
+//   let streak;
+
+//   try {
+//     await session.withTransaction(async () => {
+//       // Atomically lock the assignment.
+//       // Only one request can successfully update an unlocked assignment.
+//       const lockedAssignment = await DailyAssignment.findOneAndUpdate(
+//         {
+//           _id: assignment._id,
+//           challengeId: challenge._id,
+//           locked: false,
+//         },
+//         {
+//           $set: {
+//             locked: true,
+//             completedAt: new Date(),
+//           },
+//         },
+//         {
+//           new: true,
+//           session,
+//         }
+//       );
+
+//       if (!lockedAssignment) {
+//         throw new ApiError(
+//           409,
+//           "Today's challenge has already been submitted"
+//         );
+//       }
+
+//       const submissions = await Submission.create(
+//         [
+//           {
+//             dailyAssignmentId: assignment._id,
+//             childId,
+//             responseText,
+//             selectedOption,
+//             isCorrect,
+//           },
+//         ],
+//         { session }
+//       );
+
+//       submission = submissions[0];
+
+//       progress = await SkillProgress.findOneAndUpdate(
+//         {
+//           childId,
+//           skillId: challenge.skillId,
+//         },
+//         {
+//           $inc: {
+//             challengesCompleted: 1,
+//             score: pointsEarned,
+//           },
+//         },
+//         {
+//           upsert: true,
+//           new: true,
+//           session,
+//         }
+//       );
+
+//       streak = await registerActivityForStreak(childId, session);
+//     });
+//   } finally {
+//     await session.endSession();
+//   }
+
+//   // Queue certificate creation after the transaction succeeds.
+//   if (progress.challengesCompleted === CERTIFICATE_MILESTONE) {
+//     certificateQueue
+//       .add(
+//         'issue',
+//         { childId, skillId: challenge.skillId },
+//         { jobId: `cert-${childId}-${challenge.skillId}` }
+//       )
+//       .catch((err) => {
+//         console.error(
+//           'Could not queue certificate job:',
+//           err.message
+//         );
+//       });
+//   }
+
+//   return {
+//     submission,
+//     isCorrect,
+//     pointsEarned,
+//     correctAnswer:
+//       challenge.type === 'multiple_choice'
+//         ? translation.correctAnswer
+//         : null,
+//     streak,
+//   };
+// }
+
+// module.exports = {
+//   createChild,
+//   getChildById,
+//   updateChild,
+//   getTodayAssignment,
+//   getTodayChallenge,
+//   submitTodayChallenge,
+//   getStreak,
+//   getProgress,
+//   swapTodayChallenge,
+//   MAX_SWAPS_PER_DAY,
+// };

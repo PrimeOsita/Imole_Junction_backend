@@ -15,7 +15,7 @@ async function loginAdmin({ email, password }) {
   if (!passwordMatches) throw new ApiError(401, 'Invalid credentials.');
   if (admin.isActive === false) throw new ApiError(401, 'This admin account is no longer active.');
 
-  // ...the rest (jwt.sign and the return) stays exactly as it was
+  
 
   if (!passwordMatches) throw new ApiError(401, 'Invalid credentials.');
 

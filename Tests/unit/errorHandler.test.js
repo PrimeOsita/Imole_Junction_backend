@@ -1,4 +1,7 @@
-const { ApiError, errorHandler } = require('../../src/middlewares/errorHandler');
+const {
+  ApiError,
+  errorHandler,
+} = require('../../middlewares/errorHandler');
 
 // Minimal fake of Express's res so we can inspect what the handler sends.
 const mockRes = () => {

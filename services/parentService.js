@@ -7,7 +7,7 @@ const Streak = require('../models/Streak');
 const SkillProgress = require('../models/SkillProgress');
 const Certificate = require('../models/Certificate');
 const { env } = require('../config/env');
-const { redisClient } = require('../Mongoose connection/redis');
+const  {redisClient}  = require('../Mongoose connection/redis');
 const { generateLinkCode } = require('../utils/tokenGenerator');
 const { ApiError } = require('../middlewares/errorHandler');
 

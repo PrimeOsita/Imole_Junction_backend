@@ -3,7 +3,7 @@ const Submission = require('../models/Submission');
 const Child = require('../models/Child');
 const Streak = require('../models/Streak');
 const LeaderboardEntry = require('../models/LeaderboardEntry');
-const { redisClient } = require('../Mongoose connection/redis');
+const {redisClient}  = require('../Mongoose connection/redis');
 
 const TOP_N = 50;
 const CACHE_TTL_SECONDS = 300;
