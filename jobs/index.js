@@ -32,62 +32,142 @@
 // module.exports = { startJobs };
 
 
+// const { logger } = require('../utils/logger');
+// const { registerSchedules } = require('./schedulers');
+
+// const {
+//   startAssignDailyChallengeWorker,
+// } = require('./workers/assignDailyChallenge.worker.js');
+
+// const {
+//   startRecalculateStreaksWorker,
+// } = require('./workers/recalculateStreaks.worker.js');
+
+// const {
+//   startRecomputeLeaderboardWorker,
+// } = require('./workers/recomputeLeaderboard.worker.js');
+
+// const {
+//   startGenerateCertificateWorker,
+// } = require('./workers/generateCertificate.worker.js');
+
+// const {
+//   startExportAnalyticsWorker,
+// } = require('./workers/exportsAnalytics.worker.js');
+
+// async function startJobs() {
+//   const workers = [
+//     startAssignDailyChallengeWorker(),
+//     startRecalculateStreaksWorker(),
+//     startRecomputeLeaderboardWorker(),
+//     startGenerateCertificateWorker(),
+//     startExportAnalyticsWorker(),
+//   ];
+
+//   workers.forEach((worker) => {
+//     worker.on('failed', (job, err) => {
+//       logger.error(
+//         {
+//           err,
+//           queue: worker.name,
+//           jobId: job && job.id,
+//         },
+//         'Background job failed'
+//       );
+//     });
+//   });
+
+//   workers.forEach((worker) => {
+//     worker.on('error', (err) => {
+//       logger.error({ err, worker: worker.name }, 'Worker error');
+//     });
+//   });
+
+//   await registerSchedules();
+
+//   logger.info('All background workers started');
+
+//   return workers;
+// }
+
+// module.exports = { startJobs };
+
+
+
+
 const { logger } = require('../utils/logger');
 const { registerSchedules } = require('./schedulers');
 
 const {
-  startAssignDailyChallengeWorker,
+    startAssignDailyChallengeWorker,
 } = require('./workers/assignDailyChallenge.worker.js');
 
 const {
-  startRecalculateStreaksWorker,
+    startRecalculateStreaksWorker,
 } = require('./workers/recalculateStreaks.worker.js');
 
 const {
-  startRecomputeLeaderboardWorker,
+    startRecomputeLeaderboardWorker,
 } = require('./workers/recomputeLeaderboard.worker.js');
 
 const {
-  startGenerateCertificateWorker,
+    startGenerateCertificateWorker,
 } = require('./workers/generateCertificate.worker.js');
 
 const {
-  startExportAnalyticsWorker,
+    startExportAnalyticsWorker,
 } = require('./workers/exportsAnalytics.worker.js');
 
+let workers = null;
+
 async function startJobs() {
-  const workers = [
-    startAssignDailyChallengeWorker(),
-    startRecalculateStreaksWorker(),
-    startRecomputeLeaderboardWorker(),
-    startGenerateCertificateWorker(),
-    startExportAnalyticsWorker(),
-  ];
+    if (workers) {
+        logger.warn('Background workers have already been started');
+        return workers;
+    }
 
-  workers.forEach((worker) => {
-    worker.on('failed', (job, err) => {
-      logger.error(
-        {
-          err,
-          queue: worker.name,
-          jobId: job && job.id,
-        },
-        'Background job failed'
-      );
+    workers = [
+        startAssignDailyChallengeWorker(),
+        startRecalculateStreaksWorker(),
+        startRecomputeLeaderboardWorker(),
+        startGenerateCertificateWorker(),
+        startExportAnalyticsWorker(),
+    ];
+
+    workers.forEach((worker) => {
+        worker.on('failed', (job, err) => {
+            logger.error(
+                {
+                    err,
+                    queue: worker.name,
+                    jobId: job && job.id,
+                },
+                'Background job failed'
+            );
+        });
+
+        worker.on('error', (err) => {
+            logger.error(
+                { err, worker: worker.name },
+                'Worker error'
+            );
+        });
     });
-  });
 
-  workers.forEach((worker) => {
-    worker.on('error', (err) => {
-      logger.error({ err, worker: worker.name }, 'Worker error');
-    });
-  });
+    try {
+        await registerSchedules();
 
-  await registerSchedules();
+        logger.info('All background workers started');
 
-  logger.info('All background workers started');
+        return workers;
+    } catch (error) {
+        await Promise.allSettled(
+            workers.map((worker) => worker.close())
+        );
 
-  return workers;
+        workers = null;
+        throw error;
+    }
 }
 
 module.exports = { startJobs };

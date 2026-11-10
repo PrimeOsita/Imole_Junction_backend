@@ -16,7 +16,7 @@ info:
 
     Every response has a `success` boolean. Errors look like `{ "success": false, "message": "..." }`.'
 servers:
-  - url: http://localhost:8000/api/v1
+  - url: http://localhost:4000/api/v1
     description: Local development server
   - url: https://imole-junction-backend.onrender.com/api/v1
     description: Render production server
@@ -821,7 +821,10 @@ paths:
       tags:
         - Parent
       summary: Register a parent account
-      description: Provide an email, a phone number, or both.
+      description: |
+        Creates the account and emails a 4-digit verification code. The parent cannot log in until the email is verified (see `POST /parents/verify-email`). No token is returned at this stage.
+
+        If the same email registers again while it is still unverified (for example because the first verification email failed to send), a new code is sent and the stored password is left unchanged.
       requestBody:
         required: true
         content:
@@ -830,6 +833,7 @@ paths:
               type: object
               required:
                 - name
+                - email
                 - password
               properties:
                 name:
@@ -837,16 +841,17 @@ paths:
                   example: Mrs Okafor
                 email:
                   type: string
+                  description: Required. The verification code is sent to this address.
                   example: parent@example.com
                 phone:
                   type: string
-                  example: 08012345678
+                  example: '08012345678'
                 password:
                   type: string
                   minLength: 8
       responses:
         '201':
-          description: Registered
+          description: Account created, or a new code sent for an unverified account
           content:
             application/json:
               schema:
@@ -854,31 +859,118 @@ paths:
                 properties:
                   success:
                     type: boolean
-                  parent:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        example: 65f1c2a9b3d4e5f6a7b8c9d0
-                      name:
-                        type: string
-                      email:
-                        type: string
-                      phone:
-                        type: string
-                  token:
+                  message:
                     type: string
-                    description: Use as parentJwt
+                    example: Registration successful. Please check your email for your verification code.
+                  email:
+                    type: string
+                    example: parent@example.com
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
+        '502':
+          description: The account was saved but the verification email could not be sent. Register again with the same email to get a new code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /parents/verify-email:
+    post:
+      tags:
+        - Parent
+      summary: Verify a parent's email with the 4-digit code
+      description: |
+        Send the code that was emailed at registration. Codes expire after a short time; use `POST /parents/resend-otp` to get a new one. Once verified, the parent can log in.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otp
+              properties:
+                email:
+                  type: string
+                  example: parent@example.com
+                otp:
+                  type: string
+                  pattern: '^\d{4}$'
+                  example: '4821'
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Email verified successfully. You can now log in.
+        '400':
+          description: The code is not 4 digits, is incorrect or expired, no code was issued, or the email is already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /parents/resend-otp:
+    post:
+      tags:
+        - Parent
+      summary: Request a new verification code
+      description: Only for accounts whose email is not verified yet. Replaces any earlier code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  example: parent@example.com
+      responses:
+        '200':
+          description: A new code was emailed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: A new verification code has been sent to your email.
+        '400':
+          description: The email is already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          description: The email could not be sent. Try again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /parents/login:
     post:
       tags:
         - Parent
       summary: Parent login
-      description: Log in with email or phone, plus password.
+      description: Log in with email or phone, plus password. The parent's email must be verified first.
       requestBody:
         required: true
         content:
@@ -919,6 +1011,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The credentials are correct but the email has not been verified yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /parents/link-child:
     post:
       tags:

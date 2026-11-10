@@ -2,10 +2,39 @@ const mongoose = require('mongoose');
 
 const parentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
-    phone: { type: String, sparse: true },
-    passwordHash: { type: String, required: true },
+    name: { 
+      type: String, 
+      required: true 
+    },
+    email: { 
+      type: String, 
+      unique: true, 
+      sparse: true, 
+      lowercase: true, 
+      trim: true 
+    },
+    phone: { 
+      type: String, 
+      sparse: true 
+    },
+    passwordHash: { 
+      type: String, 
+      required: true 
+    },
+    emailOtp: {
+    type: String,
+    default: null
+},
+
+emailOtpExpire: {
+    type: Date,
+    default: null
+},
+
+isEmailVerified: {
+    type: Boolean,
+    default: false
+}
   },
   { timestamps: true }
 );

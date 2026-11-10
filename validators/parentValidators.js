@@ -21,8 +21,23 @@ const loginParentSchema = z
     message: 'Provide an email or a phone number',
   });
 
+const verifyParentEmailSchema = z.object({
+  email: z.string().trim().email(),
+  otp: z.string().regex(/^\d{4}$/, 'must be a 4-digit verification code'),
+});
+
+const resendParentEmailOtpSchema = z.object({
+  email: z.string().trim().email(),
+});
+
 const linkChildSchema = z.object({
   linkCode: z.string().trim().min(6).max(6),
 });
 
-module.exports = { registerParentSchema, loginParentSchema, linkChildSchema };
+module.exports = {
+  registerParentSchema,
+  loginParentSchema,
+  verifyParentEmailSchema,
+  resendParentEmailOtpSchema,
+  linkChildSchema,
+};

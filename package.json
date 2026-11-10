@@ -12,6 +12,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^6.2.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.12.0",
     "cors": "^2.8.5",
@@ -25,6 +26,7 @@
     "mongoose": "^8.6.0",
     "morgan": "^1.10.0",
     "nanoid": "^3.3.7",
+    "otp-generator": "^4.0.1",
     "pino": "^9.4.0",
     "pino-http": "^10.3.0",
     "redis": "^6.2.1",

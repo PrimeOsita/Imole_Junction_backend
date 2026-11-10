@@ -6,6 +6,8 @@ const { authRateLimiter } = require('../middlewares/rateLimiter');
 const {
   registerParentSchema,
   loginParentSchema,
+  verifyParentEmailSchema,
+  resendParentEmailOtpSchema,
   linkChildSchema,
 } = require('../validators/parentValidators');
 
@@ -18,6 +20,16 @@ router.post(
   authRateLimiter,
   validate(loginParentSchema),
   parentController.login
+);
+router.post(
+  '/parents/verify-email',
+  validate(verifyParentEmailSchema),
+  parentController.verifyEmail
+);
+router.post(
+  '/parents/resend-otp',
+  validate(resendParentEmailOtpSchema),
+  parentController.resendEmailOtp
 );
 router.post('/parents/link-child', parentAuth, validate(linkChildSchema), parentController.linkChild);
 router.get('/parents/children', parentAuth, parentController.listChildren);

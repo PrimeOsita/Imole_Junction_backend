@@ -51,7 +51,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const pinoHttp = require('pino-http');
 const swaggerUi = require('swagger-ui-express');
-
+const { closeQueues } = require('./jobs/queues');
 const { env, assertRequiredEnv } = require('./config/env');
 const { connectDatabase, disconnectDatabase } = require('./config/database');
 const { redisClient } = require('./Mongoose connection/redis');
@@ -67,31 +67,64 @@ const {
 
 assertRequiredEnv();
 
+// const app = express();
+
+// app.use(helmet());
+// app.use(cors({
+//   origin: '*',
+//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// }));
+
+// app.use(express.json({ limit: '1mb' }));
+// app.use(pinoHttp({ logger }));
+
+// app.use(
+//   '/api-docs',
+//   swaggerUi.serve,
+//   swaggerUi.setup(swaggerSpec, {
+//     customSiteTitle: 'IMOLE API Docs',
+//   })
+// );
+
+// app.get('/', (req, res) => res.redirect('/api-docs'));
+// app.get('/api/v1', (req, res) => res.redirect('/api-docs'));
+
+// app.use('/api/v1', v1Router);
+
+// app.use(notFoundHandler);
+// app.use(errorHandler);
 const app = express();
 
-app.use(helmet());
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// 1. CORS
+app.use(cors("*"));
 
+// 2. Security
+app.use(helmet());
+
+// 3. Request body parser
 app.use(express.json({ limit: '1mb' }));
+
+// 4. HTTP logger
 app.use(pinoHttp({ logger }));
 
+// 5. Swagger documentation
 app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'IMOLE API Docs',
-  })
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: 'IMOLE API Docs',
+    })
 );
 
+// 6. Root routes
 app.get('/', (req, res) => res.redirect('/api-docs'));
 app.get('/api/v1', (req, res) => res.redirect('/api-docs'));
 
+// 7. API routes
 app.use('/api/v1', v1Router);
 
+// 8. Error handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
 
@@ -103,14 +136,22 @@ async function start() {
     // 1. Connect to MongoDB
     await connectDatabase();
     logger.info('MongoDB connection successful');
-
+    
     // 2. Connect to Redis
     await redisClient.connect();
     await redisClient.ping();
     logger.info('Redis connection successful');
+    const redisInfo = await redisClient.info('clients');
 
+const connectedClients = redisInfo.match(/connected_clients:(\d+)/);
+const maxClients = redisInfo.match(/maxclients:(\d+)/);
+
+logger.info({
+    connectedClients: connectedClients ? connectedClients[1] : 'Not available',
+    maxClients: maxClients ? maxClients[1] : 'Not available'
+}, 'Redis connection statistics');
     // 3. Start background workers
-    workers = await startJobs();
+    // workers = await startJobs();
 
     // 4. Start Express only after required services are ready
     server = app.listen(env.port, () => {
@@ -126,22 +167,30 @@ async function start() {
 }
 
 async function shutdown() {
-  logger.info('Shutting down IMOLE backend');
+    logger.info('Shutting down IMOLE backend');
 
-  if (server) {
-    await new Promise((resolve) => {
-      server.close(resolve);
-    });
-  }
+    // 1. Stop accepting new HTTP requests
+    if (server) {
+        await new Promise((resolve) => {
+            server.close(resolve);
+        });
+    }
 
-  await Promise.allSettled(
-    workers.map((worker) => worker.close())
-  );
+    // 2. Close background workers
+    await Promise.allSettled(
+        workers.map((worker) => worker.close())
+    );
 
-  await Promise.allSettled([
-    redisClient.quit(),
-    disconnectDatabase(),
-  ]);
+    // 3. Close all BullMQ queues
+    await closeQueues();
+
+    // 4. Close the main Redis and MongoDB connections
+    await Promise.allSettled([
+        redisClient.quit(),
+        disconnectDatabase(),
+    ]);
+
+    logger.info('IMOLE backend shutdown completed');
 }
 
 process.on('SIGTERM', async () => {

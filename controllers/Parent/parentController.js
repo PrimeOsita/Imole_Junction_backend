@@ -17,7 +17,23 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const result = await parentService.verifyParentEmail(req.body);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+};
 
+exports.resendEmailOtp = async (req, res, next) => {
+  try {
+    const result = await parentService.resendParentEmailOtp(req.body);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+};
 exports.linkChild = async (req, res, next) => {
   try {
     const result = await parentService.linkChild(req.parentId, req.body.linkCode);
