@@ -80,23 +80,6 @@ async function registerParent({ name, email, phone, password }) {
 
   if (existing) {
     const sameEmail = existing.email === normalizedEmail;
-
-    // An unfinished signup (usually the first verification email failed):
-    // send a new code and leave the stored password alone.
-    if (sameEmail && existing.isEmailVerified === false) {
-      const otp = generateEmailVerificationOtp();
-      existing.emailOtp = await bcrypt.hash(otp, 10);
-      existing.emailOtpExpire = getOtpExpiryDate(VERIFICATION_OTP_TTL_MINUTES);
-      await existing.save();
-
-      await sendVerificationEmail(existing, otp);
-
-      return {
-        message: 'Registration successful. Please check your email for your verification code.',
-        email: existing.email,
-      };
-    }
-
     throw new ApiError(
       409,
       sameEmail

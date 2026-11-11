@@ -13,7 +13,7 @@ jest.mock('../../Mongoose connection/redis', () => ({
 
 const bcrypt = require('bcryptjs');
 const Parent = require('../../models/Parent');
-const { loginParent } = require('../../services/parentService');
+const { loginParent, registerParent } = require('../../services/parentService');
 
 describe('parentService login', () => {
   beforeEach(() => {
@@ -40,5 +40,27 @@ describe('parentService login', () => {
     expect(Parent.findOne).toHaveBeenCalledWith({
       email: 'parent@example.com',
     });
+  });
+
+  test('rejects registration when an unverified account already uses the email', async () => {
+    const existing = {
+      email: 'parent@example.com',
+      isEmailVerified: false,
+      save: jest.fn(),
+    };
+    Parent.findOne.mockResolvedValue(existing);
+
+    await expect(
+      registerParent({
+        name: 'Parent',
+        email: ' Parent@Example.com ',
+        password: 'password',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'An account with this email already exists.',
+    });
+
+    expect(existing.save).not.toHaveBeenCalled();
   });
 });

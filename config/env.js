@@ -38,8 +38,10 @@
 
 require('dotenv').config();
 
+const legacyPremiumInterval = process.env.FLW_PREMIUM_INTERVAL || 'monthly';
+
 const env = {
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv: process.env.NODE_ENV || 'production',
   port: Number(process.env.PORT) || 4000,
 
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/imole',
@@ -61,6 +63,36 @@ const env = {
   submitRateLimitMax: Number(process.env.SUBMIT_RATE_LIMIT_MAX) || 20,
   submitRateLimitWindowMs:
     Number(process.env.SUBMIT_RATE_LIMIT_WINDOW_MS) || 60000,
+  flutterwaveSecretKey: process.env.FLW_SECRET_KEY,
+  flutterwaveWebhookSecretHash: process.env.FLW_WEBHOOK_SECRET_HASH,
+  flutterwavePremiumPlanId: process.env.FLW_PREMIUM_PLAN_ID
+    ? Number(process.env.FLW_PREMIUM_PLAN_ID)
+    : undefined,
+  flutterwavePremiumAmount: process.env.FLW_PREMIUM_AMOUNT
+    ? Number(process.env.FLW_PREMIUM_AMOUNT)
+    : undefined,
+  flutterwavePremiumInterval: process.env.FLW_PREMIUM_INTERVAL || 'monthly',
+  flutterwavePremiumMonthlyPlanId: process.env.FLW_PREMIUM_MONTHLY_PLAN_ID
+    ? Number(process.env.FLW_PREMIUM_MONTHLY_PLAN_ID)
+    : legacyPremiumInterval === 'monthly' && process.env.FLW_PREMIUM_PLAN_ID
+      ? Number(process.env.FLW_PREMIUM_PLAN_ID)
+      : undefined,
+  flutterwavePremiumMonthlyAmount: process.env.FLW_PREMIUM_MONTHLY_AMOUNT
+    ? Number(process.env.FLW_PREMIUM_MONTHLY_AMOUNT)
+    : legacyPremiumInterval === 'monthly' && process.env.FLW_PREMIUM_AMOUNT
+      ? Number(process.env.FLW_PREMIUM_AMOUNT)
+      : undefined,
+  flutterwavePremiumYearlyPlanId: process.env.FLW_PREMIUM_YEARLY_PLAN_ID
+    ? Number(process.env.FLW_PREMIUM_YEARLY_PLAN_ID)
+    : legacyPremiumInterval === 'yearly' && process.env.FLW_PREMIUM_PLAN_ID
+      ? Number(process.env.FLW_PREMIUM_PLAN_ID)
+      : undefined,
+  flutterwavePremiumYearlyAmount: process.env.FLW_PREMIUM_YEARLY_AMOUNT
+    ? Number(process.env.FLW_PREMIUM_YEARLY_AMOUNT)
+    : legacyPremiumInterval === 'yearly' && process.env.FLW_PREMIUM_AMOUNT
+      ? Number(process.env.FLW_PREMIUM_AMOUNT)
+      : undefined,
+  flutterwaveRedirectUrl: process.env.FLW_REDIRECT_URL,
 };
 
 function assertRequiredEnv() {

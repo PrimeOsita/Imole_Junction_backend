@@ -26,7 +26,7 @@ tags:
   - name: Child
     description: Everything a child does in the app. Uses the child token.
   - name: Parent
-    description: Parent accounts, linking to a child, and progress views.
+    description: Parent accounts, child progress, and Premium subscriptions.
   - name: Admin - Auth & Accounts
     description: Admin login and managing admin accounts.
   - name: Admin - Challenges
@@ -94,6 +94,71 @@ components:
         message:
           type: string
           example: Something went wrong
+    SubscriptionStatus:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum:
+            - freemium
+            - premium
+          description: The parent account's current plan.
+        status:
+          type: string
+          enum:
+            - inactive
+            - active
+            - cancelled
+          description: Whether the current Premium period is active or a cancellation is scheduled.
+        isPremium:
+          type: boolean
+          description: True when the parent currently has Premium access.
+        autoRenew:
+          type: boolean
+          description: True only when Premium is active and auto-renewal is enabled.
+        currentPeriodEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The expiry time for the current paid subscription period.
+    PremiumCheckout:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        txRef:
+          type: string
+          example: IMOLE-PREMIUM-9c9cd371-ace0-4c80-8f96-1849591e2a2d
+        checkoutUrl:
+          type: string
+          format: uri
+          example: https://checkout.flutterwave.com/...
+        amount:
+          type: number
+          example: 5000
+        currency:
+          type: string
+          example: NGN
+        billingInterval:
+          type: string
+          enum:
+            - monthly
+            - yearly
+          example: monthly
+    PremiumVerificationRequest:
+      type: object
+      required:
+        - txRef
+        - transactionId
+      properties:
+        txRef:
+          type: string
+          example: IMOLE-PREMIUM-9c9cd371-ace0-4c80-8f96-1849591e2a2d
+        transactionId:
+          type: string
+          pattern: '^[0-9]+$'
+          example: '123456789'
     Child:
       type: object
       properties:
@@ -1206,6 +1271,144 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /parents/subscription:
+    get:
+      tags:
+        - Parent
+      summary: Get my subscription status
+      security:
+        - parentJwt: []
+      responses:
+        '200':
+          description: Current plan and renewal status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - subscription
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  subscription:
+                    $ref: '#/components/schemas/SubscriptionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /parents/subscription/checkout:
+    post:
+      tags:
+        - Parent
+      summary: Start Premium checkout
+      description: Choose a configured monthly or yearly Flutterwave plan. Payment plans are card-only; omit the interval for monthly.
+      security:
+        - parentJwt: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                billingInterval:
+                  type: string
+                  enum:
+                    - monthly
+                    - yearly
+                  default: monthly
+      responses:
+        '201':
+          description: Flutterwave checkout link created for the selected Premium interval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PremiumCheckout'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /parents/subscription/verify:
+    post:
+      tags:
+        - Parent
+      summary: Verify Premium checkout
+      description: Verifies the transaction directly with Flutterwave before granting Premium.
+      security:
+        - parentJwt: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PremiumVerificationRequest'
+      responses:
+        '200':
+          description: Verified payment and current subscription
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  subscription:
+                    $ref: '#/components/schemas/SubscriptionStatus'
+                  message:
+                    type: string
+                    example: Premium activated successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /parents/subscription/cancel:
+    post:
+      tags:
+        - Parent
+      summary: Cancel automatic renewal
+      description: Cancels the Flutterwave subscription while keeping Premium access through the paid period.
+      security:
+        - parentJwt: []
+      responses:
+        '200':
+          description: Subscription cancelled; access remains until the current period ends.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - subscription
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  subscription:
+                    $ref: '#/components/schemas/SubscriptionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /webhooks/flutterwave:
+    post:
+      tags:
+        - Parent
+      summary: Receive Flutterwave subscription events
+      description: Verifies the verif-hash header and confirms successful charges with Flutterwave.
+      parameters:
+        - name: verif-hash
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Webhook accepted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /admin/login:
     post:
       tags:
