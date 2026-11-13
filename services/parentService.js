@@ -11,6 +11,7 @@ const  {redisClient}  = require('../Mongoose connection/redis');
 const { generateLinkCode } = require('../utils/tokenGenerator');
 const { ApiError } = require('../middlewares/errorHandler');
 const { getParentVerificationEmail } = require('../utils/sendEmail');
+const { domainCanReceiveEmail } = require('../utils/emailDomain');
 const { sendSingleEmail } = require('../utils/brevo');
 const {
     generateEmailVerificationOtp,
@@ -72,7 +73,9 @@ async function registerParent({ name, email, phone, password }) {
   }
 
   const normalizedEmail = normalizeEmail(email);
-
+ if (!(await domainCanReceiveEmail(normalizedEmail))) {
+    throw new ApiError(400, 'That email domain cannot receive email. Please check the spelling.');
+  }
   const conditions = [{ email: normalizedEmail }];
   if (phone) conditions.push({ phone });
 

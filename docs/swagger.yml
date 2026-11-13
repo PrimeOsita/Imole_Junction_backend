@@ -16,7 +16,7 @@ info:
 
     Every response has a `success` boolean. Errors look like `{ "success": false, "message": "..." }`.'
 servers:
-  - url: http://localhost:4000/api/v1
+  - url: http://localhost:8000/api/v1
     description: Local development server
   - url: https://imole-junction-backend.onrender.com/api/v1
     description: Render production server
@@ -906,14 +906,17 @@ paths:
                   example: Mrs Okafor
                 email:
                   type: string
-                  description: Required. The verification code is sent to this address.
+                  description: Required. A real email address whose domain can receive mail. The verification code is sent here.
                   example: parent@example.com
                 phone:
                   type: string
+                  description: Optional Nigerian mobile number (08012345678, 2348012345678 or +2348012345678). Stored as +234XXXXXXXXXX.
                   example: '08012345678'
                 password:
                   type: string
                   minLength: 8
+                  maxLength: 72
+                  description: 8 to 72 characters, with at least one lowercase letter, one uppercase letter, one number and one special character.
       responses:
         '201':
           description: Account created, or a new code sent for an unverified account
