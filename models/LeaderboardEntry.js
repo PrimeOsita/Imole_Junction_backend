@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const leaderboardEntrySchema = new mongoose.Schema(
   {
     childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child', required: true },
-    anonymousUsername: { type: String, required: true },
+    UserName: { type: String, required: true },
     points: { type: Number, default: 0 },
     currentStreak: { type: Number, default: 0 },
     period: { type: String, enum: ['weekly', 'all_time'], required: true },

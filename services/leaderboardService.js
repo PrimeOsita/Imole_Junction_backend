@@ -16,18 +16,18 @@ async function rebuildPeriod(period, totals) {
   const childIds = totals.map((t) => t._id);
 
   const [children, streaks] = await Promise.all([
-    Child.find({ _id: { $in: childIds } }).select('anonymousUsername').lean(),
+    Child.find({ _id: { $in: childIds } }).select('UserName').lean(),
     Streak.find({ childId: { $in: childIds } }).select('childId currentStreak').lean(),
   ]);
 
-  const usernameById = new Map(children.map((c) => [String(c._id), c.anonymousUsername]));
+  const usernameById = new Map(children.map((c) => [String(c._id), c.UserName]));
   const streakById = new Map(streaks.map((s) => [String(s.childId), s.currentStreak]));
 
   const ranked = totals
     .filter((t) => usernameById.has(String(t._id)))
     .map((t) => ({
       childId: t._id,
-      anonymousUsername: usernameById.get(String(t._id)),
+      UserName: usernameById.get(String(t._id)),
       points: t.points,
       currentStreak: streakById.get(String(t._id)) || 0,
     }))
@@ -87,13 +87,13 @@ async function getLeaderboard(period, childId) {
     top = await LeaderboardEntry.find({ period })
       .sort({ rank: 1 })
       .limit(TOP_N)
-      .select('rank anonymousUsername points currentStreak -_id')
+      .select('rank UserName points currentStreak -_id')
       .lean();
     await redisClient.set(cacheKey(period), JSON.stringify(top), 'EX', CACHE_TTL_SECONDS);
   }
 
   const me = await LeaderboardEntry.findOne({ childId, period })
-    .select('rank anonymousUsername points currentStreak -_id')
+    .select('rank UserName points currentStreak -_id')
     .lean();
 
   return { period, top, me };

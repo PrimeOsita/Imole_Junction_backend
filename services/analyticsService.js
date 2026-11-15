@@ -71,7 +71,7 @@ async function buildAnalyticsCsv() {
   const progressById = new Map(progress.map((p) => [String(p._id), p]));
 
   const header = [
-    'childId', 'anonymousUsername', 'age', 'language', 'joinedAt',
+    'childId', 'UserName', 'age', 'language', 'joinedAt',
     'currentStreak', 'bestStreak', 'totalCompleted', 'totalPoints',
   ];
 
@@ -79,7 +79,7 @@ async function buildAnalyticsCsv() {
     const streak = streakById.get(String(child._id)) || {};
     const totals = progressById.get(String(child._id)) || {};
     return [
-      child._id, child.anonymousUsername, child.age, child.preferredLanguage,
+      child._id, child.UserName, child.age, child.preferredLanguage,
       child.createdAt.toISOString(), streak.currentStreak || 0, streak.bestStreak || 0,
       totals.totalCompleted || 0, totals.totalPoints || 0,
     ];

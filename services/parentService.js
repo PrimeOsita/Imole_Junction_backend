@@ -241,7 +241,7 @@ async function linkChild(parentId, linkCode) {
   );
   await redisClient.del(linkKey(code)); // one-time use
 
-  const child = await Child.findById(childId).select('name anonymousUsername age');
+  const child = await Child.findById(childId).select('name UserName age');
   return { child };
 }
 
@@ -251,7 +251,7 @@ async function assertParentOwnsChild(parentId, childId) {
 }
 
 async function listChildren(parentId) {
-  const links = await ParentChildLink.find({ parentId }).populate('childId', 'name anonymousUsername age');
+  const links = await ParentChildLink.find({ parentId }).populate('childId', 'name UserName age');
   return links.map((link) => link.childId);
 }
 
@@ -259,7 +259,7 @@ async function getChildProgress(parentId, childId) {
   await assertParentOwnsChild(parentId, childId);
 
   const [child, streak, progress, certificates] = await Promise.all([
-    Child.findById(childId).select('name age anonymousUsername preferredLanguage createdAt'),
+    Child.findById(childId).select('name age UserName preferredLanguage createdAt'),
     Streak.findOne({ childId }),
     SkillProgress.find({ childId }).populate('skillId', 'slug name'),
     Certificate.countDocuments({ childId }),

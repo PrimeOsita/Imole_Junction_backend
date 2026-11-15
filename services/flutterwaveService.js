@@ -30,7 +30,7 @@ async function request(path, { method = 'GET', body } = {}) {
   } finally {
     clearTimeout(timeout);
   }
-
+  
   let result;
   try {
     result = await response.json();

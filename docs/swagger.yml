@@ -179,7 +179,7 @@ components:
             - en
             - yo
             - pcm
-        anonymousUsername:
+        UserName:
           type: string
           example: SwiftLeopard482
         createdAt:
@@ -197,7 +197,7 @@ components:
         name:
           type: string
           example: Ada
-        anonymousUsername:
+        UserName:
           type: string
           example: SwiftLeopard482
         age:
@@ -430,7 +430,7 @@ components:
         rank:
           type: integer
           example: 1
-        anonymousUsername:
+        UserName:
           type: string
           example: SwiftLeopard482
         points:
@@ -569,7 +569,13 @@ paths:
                 - name
                 - age
               properties:
-                name:
+                FirstName:
+                  type: string
+                  example: Ada
+                LastName:
+                  type: string
+                  example: Ada
+                UserName:
                   type: string
                   example: Ada
                 age:
@@ -597,7 +603,7 @@ paths:
                   childId:
                     type: string
                     example: 65f1c2a9b3d4e5f6a7b8c9d0
-                  anonymousUsername:
+                  UserName:
                     type: string
                     example: SwiftLeopard482
                   token:

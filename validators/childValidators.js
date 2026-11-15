@@ -1,13 +1,17 @@
 const { z } = require('zod');
 
 const createChildSchema = z.object({
-  name: z.string().trim().min(1, 'is required').max(50),
+  FirstName: z.string().trim().min(1, 'is required').max(50),
+  LastName: z.string().trim().min(1, 'is required').max(50),
+  UserName: z.string().trim().min(1, 'is required').max(50),
   age: z.number().int().min(8, 'must be at least 8').max(16, 'must be 16 or under'),
   preferredLanguage: z.enum(['en', 'yo', 'pcm']).optional(),
 });
 
 const updateChildSchema = z.object({
-  name: z.string().trim().min(1).max(50).optional(),
+  FirstName: z.string().trim().min(1).max(50).optional(),
+  LastName: z.string().trim().min(1).max(50).optional(),
+  UserName: z.string().trim().min(1).max(50).optional(),
   preferredLanguage: z.enum(['en', 'yo', 'pcm']).optional(),
 });
 
