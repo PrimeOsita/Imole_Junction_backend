@@ -647,7 +647,11 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                FirstName:
+                  type: string
+                LastName:
+                  type: string
+                UserName:
                   type: string
                 preferredLanguage:
                   type: string
