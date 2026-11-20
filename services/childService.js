@@ -36,10 +36,10 @@ function pickTranslation(challenge, language) {
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
-async function createChild({ FirstName, LastName, age, preferredLanguage, UserName }) {
+async function createChild({ FirstName, LastName, ageRange, preferredLanguage, UserName }) {
   const anonymousUsername = await generateUniqueUsername();
 
-  const child = await Child.create({ FirstName, LastName, age, preferredLanguage, UserName, anonymousUsername });
+  const child = await Child.create({ FirstName, LastName, ageRange, preferredLanguage, UserName, anonymousUsername });
 
   const rawToken = generateChildToken();
   await ChildToken.create({ childId: child._id, tokenHash: hashToken(rawToken) });
@@ -56,7 +56,7 @@ async function getChildById(childId) {
 }
 
 async function updateChild(childId, updates) {
-  const allowedFields = ['FirstName', 'LastName', 'UserName', 'preferredLanguage'];
+  const allowedFields = ['FirstName', 'LastName', 'UserName', 'ageRange', 'preferredLanguage'];
   const safeUpdates = Object.fromEntries(
     Object.entries(updates).filter(([key]) => allowedFields.includes(key))
   );

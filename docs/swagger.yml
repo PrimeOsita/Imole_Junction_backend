@@ -168,11 +168,13 @@ components:
         name:
           type: string
           example: Ada
-        age:
-          type: integer
-          minimum: 8
-          maximum: 16
-          example: 10
+        ageRange:
+          type: string
+          enum:
+            - 6-9
+            - 10-13
+            - 14-17
+          example: 10-13
         preferredLanguage:
           type: string
           enum:
@@ -567,7 +569,7 @@ paths:
               type: object
               required:
                 - name
-                - age
+                - ageRange
               properties:
                 FirstName:
                   type: string
@@ -578,11 +580,6 @@ paths:
                 UserName:
                   type: string
                   example: Ada
-                age:
-                  type: integer
-                  minimum: 8
-                  maximum: 16
-                  example: 10
                 preferredLanguage:
                   type: string
                   enum:
@@ -590,6 +587,13 @@ paths:
                     - yo
                     - pcm
                   default: en
+                ageRange:
+                  type: string
+                  enum:
+                    - 6-9
+                    - 10-13
+                    - 14-17
+                  example: 10-13
       responses:
         '201':
           description: Profile created

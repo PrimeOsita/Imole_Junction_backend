@@ -12,11 +12,10 @@ const childSchema = new mongoose.Schema(
       required: true, 
       trim: true 
     },
-    age: { 
-      type: Number, 
-      required: true,
-      min: 8, 
-      max: 16 
+    ageRange: { 
+      type: String,
+      enum: ['6-9', '10-13', '14-17'],
+      required: true
     },
     preferredLanguage: {
       type: String,

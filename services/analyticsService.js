@@ -6,7 +6,7 @@ const DailyAssignment = require('../models/DailyAssignment');
 
 function daysAgo(days) {
   const date = new Date();
-  date.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0);
   date.setDate(date.getDate() - days);
   return date;
 }
@@ -71,7 +71,7 @@ async function buildAnalyticsCsv() {
   const progressById = new Map(progress.map((p) => [String(p._id), p]));
 
   const header = [
-    'childId', 'UserName', 'age', 'language', 'joinedAt',
+    'childId', 'UserName', 'ageRange', 'language', 'joinedAt',
     'currentStreak', 'bestStreak', 'totalCompleted', 'totalPoints',
   ];
 
@@ -79,7 +79,7 @@ async function buildAnalyticsCsv() {
     const streak = streakById.get(String(child._id)) || {};
     const totals = progressById.get(String(child._id)) || {};
     return [
-      child._id, child.UserName, child.age, child.preferredLanguage,
+      child._id, child.UserName, child.ageRange, child.preferredLanguage,
       child.createdAt.toISOString(), streak.currentStreak || 0, streak.bestStreak || 0,
       totals.totalCompleted || 0, totals.totalPoints || 0,
     ];

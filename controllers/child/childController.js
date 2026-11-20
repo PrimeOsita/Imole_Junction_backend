@@ -4,8 +4,8 @@ const leaderboardService = require('../../services/leaderboardService');
 
 exports.createChild = async (req, res, next) => {
   try {
-    const { FirstName, LastName, age, preferredLanguage, UserName } = req.body;
-    const { child, token } = await childService.createChild({ FirstName, LastName, age, preferredLanguage, UserName });
+    const { FirstName, LastName, ageRange, preferredLanguage, UserName } = req.body;
+    const { child, token } = await childService.createChild({ FirstName, LastName, ageRange, preferredLanguage, UserName });
 
     res.status(201).json({
       success: true,
